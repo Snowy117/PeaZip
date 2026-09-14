@@ -18,6 +18,11 @@ uses
   eventlog,
   Process;
 
+  var
+    TargetCPU: string = '';
+    TargetOS: string = '';
+    CompilerPath: string = '';
+
   function OutLog(const Knd: TEventType; const Msg: string): string;
   begin
     case Knd of
@@ -82,6 +87,7 @@ uses
   const
     LibPath: string = '/usr/lib/';
   begin
+    {$IFDEF UNIX}
     OutLog(etDebug, #9'add:'#9 + Path);
     if not FileExists(LibPath + ExtractFileName(Path)) then
       if RunCommand('sudo', ['bash', '-c', 'cp %s %s; ldconfig --verbose'.Format([Path, LibPath])], Result, [poStderrToOutPut]) then
@@ -91,28 +97,44 @@ uses
         ExitCode += 1;
         OutLog(etError, Result);
       end;
+    {$ENDIF}
   end;
 
   function BuildProject(const Path: string): string;
   var
     Text: string;
+    Args: TStringList;
   begin
     OutLog(etDebug, 'Build from:'#9 + Path);
-    if RunCommand('lazbuild',
-      ['--build-all', '--recursive', '--no-write-project', Path], Result, [poStderrToOutPut, poWaitOnExit]) then
-    begin
-      Result := SelectString(Result, 'Linking').Split(' ')[2].Replace(LineEnding, EmptyStr);
-      OutLog(etInfo, #9'to:'#9 + Result);
-      Text := ReadFileToString(Path.Replace('.lpi', '.lpr'));
-      if Text.Contains('program') and Text.Contains('consoletestrunner') then
-        RunTest(Result)
-      else if Text.Contains('library') and Text.Contains('exports') then
-        AddDDL(Result)
-    end
-    else
-    begin
-      ExitCode += 1;
-      OutLog(etError, SelectString(Result, '(Fatal|Error):'));
+    Args := TStringList.Create;
+    try
+      Args.Add('--build-all');
+      Args.Add('--recursive');
+      Args.Add('--no-write-project');
+      if TargetCPU <> '' then
+        Args.Add('--cpu=' + TargetCPU);
+      if TargetOS <> '' then
+        Args.Add('--os=' + TargetOS);
+      if CompilerPath <> '' then
+        Args.Add('--compiler=' + CompilerPath);
+      Args.Add(Path);
+      if RunCommand('lazbuild', Args.ToStringArray, Result, [poStderrToOutPut, poWaitOnExit]) then
+      begin
+        Result := SelectString(Result, 'Linking').Split(' ')[2].Replace(LineEnding, EmptyStr);
+        OutLog(etInfo, #9'to:'#9 + Result);
+        Text := ReadFileToString(Path.Replace('.lpi', '.lpr'));
+        if Text.Contains('program') and Text.Contains('consoletestrunner') then
+          RunTest(Result)
+        else if Text.Contains('library') and Text.Contains('exports') then
+          AddDDL(Result)
+      end
+      else
+      begin
+        ExitCode += 1;
+        OutLog(etError, SelectString(Result, '(Fatal|Error):'));
+      end;
+    finally
+      Args.Free;
     end;
   end;
 
@@ -209,11 +231,24 @@ uses
     end;
   end;
 
+var
+  i: integer;
+
 begin
   try
     if ParamCount > 0 then
       case ParamStr(1) of
-        'build': BuildAll([]);
+        'build':
+          begin
+            for i := 2 to ParamCount do
+              if Pos('--cpu=', ParamStr(i)) = 1 then
+                TargetCPU := Copy(ParamStr(i), 7, MaxInt)
+              else if Pos('--os=', ParamStr(i)) = 1 then
+                TargetOS := Copy(ParamStr(i), 6, MaxInt)
+              else if Pos('--compiler=', ParamStr(i)) = 1 then
+                CompilerPath := Copy(ParamStr(i), 12, MaxInt);
+            BuildAll([]);
+          end;
         else
           OutLog(etError, ParamStr(1));
       end;
