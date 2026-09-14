@@ -9,7 +9,7 @@ param(
 $ErrorActionPreference = 'stop'
 Set-PSDebug -Strict
 New-Variable -Option Constant -Name VAR -Value @{
-    Uri = 'https://download.lazarus-ide.org/Lazarus%20Windows%2064%20bits/Lazarus%204.0/lazarus-4.0-fpc-3.2.2-win64.exe'
+    Uri = 'https://download.lazarus-ide.org/Lazarus%20Windows%2064%20bits/Lazarus%204.8/lazarus-4.8-fpc-3.2.2-win64.exe'
     OutFile = (New-TemporaryFile).FullName + '.exe'
 }
 Invoke-WebRequest @VAR
