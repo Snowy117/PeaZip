@@ -32,7 +32,7 @@ interface
  0.10     06.12.03  W.Ehrhardt  Initial version from old hrtimer
  0.20     06.12.03  we          with _HasRDTSC: boolean
  0.30     06.12.03  we          with _ReadCounter
- 0.31     06.12.03  we          $J+ fÅr D4Plus
+ 0.31     06.12.03  we          $J+ fÔøΩr D4Plus
  0.32     17.12.03  we          interface _check.. routines
  0.33     02.01.04  we          Second cpuid after RDTSC
  0.34     11.04.04  we          Delphi 7
@@ -99,7 +99,7 @@ implementation
 
 {$ifdef PurePascal}
 
-{$ifdef WINCE}
+{$if defined(WINCE) or defined(MSWINDOWS)}
 
   uses
     sysutils;
