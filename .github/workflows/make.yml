@@ -94,6 +94,34 @@ jobs:
           if ($dll) { Copy-Item $dll.FullName $Stage }
           Copy-Item 'peazip-sources\res' -Destination (Join-Path $Stage 'res') -Recurse
 
+      - name: Fetch backend binaries (aarch64)
+        if: runner.os == 'Windows' && matrix.arch == 'aarch64'
+        shell: pwsh
+        run: |
+            # third-party backends from the official WIN64 portable package,
+            # running through the x64 emulation layer
+            $Portable = Join-Path $Env:TEMP 'peazip_portable-WIN64.zip'
+            Invoke-WebRequest -Uri 'https://github.com/peazip/PeaZip/releases/download/11.2.0/peazip_portable-11.2.0.WIN64.zip' -OutFile $Portable
+            Expand-Archive $Portable -DestinationPath "$Env:TEMP\peazip-portable" -Force
+            $Bin = Get-ChildItem "$Env:TEMP\peazip-portable" -Recurse -Directory -Filter 'bin' |
+                Where-Object { $_.Parent.Name -eq 'res' } | Select-Object -First 1
+            if (-not $Bin) { throw 'res\bin not found in portable package' }
+            Copy-Item "$($Bin.FullName)\*" 'peazip-win-arm64\res\bin' -Recurse -Force
+            # replace 7-Zip with the official native arm64 build
+            $Setup7z = Join-Path $Env:TEMP '7z-arm64.exe'
+            Invoke-WebRequest -Uri 'https://github.com/ip7z/7zip/releases/download/26.03/7z2603-arm64.exe' -OutFile $Setup7z
+            & $Setup7z /S | Out-Null
+            $SevenZip = 'C:\Program Files\7-Zip'
+            if (-not (Test-Path "$SevenZip\7z.exe")) { throw '7-Zip install dir not found' }
+            Remove-Item 'peazip-win-arm64\res\bin\7z' -Recurse -Force
+            New-Item -ItemType Directory 'peazip-win-arm64\res\bin\7z' | Out-Null
+            Copy-Item "$SevenZip\7z.exe", "$SevenZip\7z.dll" 'peazip-win-arm64\res\bin\7z'
+            foreach ($s in '7z.sfx', '7zCon.sfx') {
+                if (Test-Path "$SevenZip\$s") {
+                    Copy-Item "$SevenZip\$s" 'peazip-win-arm64\res\bin\7z'
+                }
+            }
+
       - name: Build installer (aarch64)
         if: runner.os == 'Windows' && matrix.arch == 'aarch64'
         shell: pwsh
