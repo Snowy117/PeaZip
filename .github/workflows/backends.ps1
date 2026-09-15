@@ -41,7 +41,7 @@ $UpBin = (Get-ChildItem (Join-Path $Work 'upstream-zip') -Recurse -Directory -Fi
 if (-not $UpBin) { throw 'res\bin not found in upstream package' }
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 
-Copy-Item (Join-Path $UpBin 'arc') (Join-Path $OutDir 'arc') -Recurse -Force
+Copy-Item (Join-Path $UpBin 'arc\*') (Join-Path $OutDir 'arc') -Recurse -Force
 
 Set-Backend '7z' '7-zip' {
     $Setup = Join-Path $Work '7z-arm64.exe'
