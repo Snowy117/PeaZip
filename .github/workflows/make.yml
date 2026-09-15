@@ -119,9 +119,9 @@ jobs:
           $iss = $iss.Replace('AppVerName=PeaZip 11.3.0 (WIN64)', 'AppVerName=PeaZip 11.3.0 (WINARM64)')
           $iss = $iss.Replace('ArchitecturesInstallIn64BitMode=x64', 'ArchitecturesInstallIn64BitMode=arm64')
           $iss = $iss.Replace('ArchitecturesAllowed=x64', 'ArchitecturesAllowed=arm64')
-          [IO.File]::WriteAllText("$PWD\peazip-setup_script_WINARM64.iss", $iss,
+          [IO.File]::WriteAllText("$Installer\peazip-setup_script_WINARM64.iss", $iss,
               [Text.UTF8Encoding]::new($true))
-          & $Iscc "$PWD\peazip-setup_script_WINARM64.iss"
+          & $Iscc "$Installer\peazip-setup_script_WINARM64.iss"
           if ($LASTEXITCODE -ne 0) { throw 'installer compilation failed' }
 
       - name: Upload artifacts (aarch64)
