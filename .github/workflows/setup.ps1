@@ -43,7 +43,32 @@ if ($TargetCPU -ne '') {
         $Cfg += "-Fu$($_.FullName)"
     }
     Set-Content -Path (Join-Path $CrossBin 'fpc.cfg') -Value $Cfg
-    $MakeArgs += "--cpu=$TargetCPU", "--os=$TargetOS", "--compiler=$(Join-Path $CrossBin 'ppca64.exe')"
+    $LazArgs = @("--cpu=$TargetCPU", "--os=$TargetOS",
+        "--compiler=$(Join-Path $CrossBin 'ppca64.exe')")
+
+    # peazip validates dragdropfilesdll.dll's SHA256 at startup against
+    # HDDDLL_WIN64_X in externalprograms.pas: build the dll first, record its
+    # actual hash there, then compile pea and peazip
+    Get-ChildItem -Recurse -Filter '*.lpk' | Where-Object {
+        $_.FullName -notmatch '(cocoa|x11|_template)'
+    } | ForEach-Object {
+        & lazbuild --add-package-link $_.FullName
+        if ($LASTEXITCODE -ne 0) { throw "add-package-link failed: $($_.FullName)" }
+    }
+    & lazbuild @LazArgs --build-all 'peazip-sources\dev\dragdropfilesdll.src\dragdropfilesdll.lpi'
+    if ($LASTEXITCODE -ne 0) { throw 'dragdropfilesdll build failed' }
+    $Dll = 'peazip-sources\dev\dragdropfilesdll.src\dragdropfilesdll.dll'
+    $Hash = (Get-FileHash $Dll -Algorithm SHA256).Hash
+    "dragdropfilesdll.dll SHA256: $Hash" | Out-Host
+    $Ext = 'peazip-sources\dev\externalprograms.pas'
+    (Get-Content -Raw $Ext) -replace
+        "(HDDDLL_WIN64_X\s*=\s*)'[0-9A-Fa-f]+'", "`$1'$Hash'" |
+        Set-Content -Path $Ext -NoNewline
+    & lazbuild @LazArgs --build-all 'peazip-sources\dev\project_pea.lpi'
+    if ($LASTEXITCODE -ne 0) { throw 'project_pea build failed' }
+    & lazbuild @LazArgs --build-all 'peazip-sources\dev\project_peach.lpi'
+    if ($LASTEXITCODE -ne 0) { throw 'project_peach build failed' }
+    Exit 0
 }
 
 & instantfpc @MakeArgs | Out-Host
