@@ -114,7 +114,7 @@ jobs:
           # derive the ARM64 installer from the WIN64 one
           $iss = [IO.File]::ReadAllText("$Installer\peazip-setup_script_WIN64.iss")
           $iss = $iss.Replace('C:\input\peazip-11.3.0.WIN64', $Stage)
-          $iss = $iss.Replace('OutputDir=C:\output\', "$PWD\")
+          $iss = $iss.Replace('C:\output\', "$PWD\")
           $iss = $iss.Replace('OutputBaseFilename=peazip-11.3.0.WIN64', 'OutputBaseFilename=peazip-11.3.0.WINARM64')
           $iss = $iss.Replace('AppVerName=PeaZip 11.3.0 (WIN64)', 'AppVerName=PeaZip 11.3.0 (WINARM64)')
           $iss = $iss.Replace('ArchitecturesInstallIn64BitMode=x64', 'ArchitecturesInstallIn64BitMode=arm64')
