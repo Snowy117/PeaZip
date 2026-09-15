@@ -101,10 +101,13 @@ jobs:
           $Stage = "$PWD\peazip-win-arm64"
           $Installer = 'peazip-sources\dev\installer'
           $Setup = Join-Path $Env:TEMP 'innosetup.exe'
-          Invoke-WebRequest -Uri 'https://files.jrsoftware.org/is/6/innosetup-6.7.3.exe' -OutFile $Setup
+          Invoke-WebRequest -Uri 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe' -OutFile $Setup
           & $Setup /VERYSILENT /SUPPRESSMSGBOXES /NORESTART | Out-Null
-          $Iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
-          if (-not (Test-Path $Iscc)) { throw 'ISCC.exe not found' }
+          $Iscc = @(
+              'C:\Program Files\Inno Setup 7\ISCC.exe',
+              'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $Iscc) { throw 'ISCC.exe not found' }
           # compile the configuration wizard shipped as res\bin\Configure PeaZip.exe
           & $Iscc /O"$Stage\res\bin" /F'Configure PeaZip' "$Installer\peazip-setup_script-configure.iss"
           if ($LASTEXITCODE -ne 0) { throw 'configure script compilation failed' }
